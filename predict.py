@@ -131,9 +131,22 @@ def imageprepare(argv):
         newImage.paste(img, (wleft, 4))  # paste resized image on white canvas
         newImage.show()
 
+        black=0
+        white=0
+        for pixel in newImage.getdata():
+            if pixel==0:
+                black+=1
+            if pixel==255:
+                white+=1
+        print("BLACK: "+str(black))
+        print("WHITE: " + str(white))
+
+
     # newImage.save("sample.png")
 
     tv = list(newImage.getdata())  # get pixel values
+
+
 
     # normalize pixels to 0 and 1. 0 is pure white, 1 is pure black.
     tva = [(255 - x) * 1.0 / 255.0 for x in tv]
@@ -153,5 +166,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    image_path = '/home/martin/sudoku/sudoku_recognition/number8.jpg'
+    image_path = '/home/martin/sudoku/sudoku_recognition/var3.png'
     main(image_path)

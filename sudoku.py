@@ -1,10 +1,12 @@
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
+import math
+from PIL import Image
 
 
 # Cargar Imagen
-image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/sudoku-original.jpg')
+image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/sudoku2.png')
 # Mostrar Imagen
 
 cv2.imshow("Imagen original",image_sudoku_original)
@@ -129,13 +131,12 @@ cv2.waitKey(0)
 contours, hierarchy = cv2.findContours(var2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 
-
 squares = []
 size_rectangle_max = 0;
 biggest = None
 max_area = 0
-h=0
-w=0
+count = 0
+area_total = 0
 for i in contours:
    area = cv2.contourArea(i)
    if area > 100:
@@ -144,11 +145,46 @@ for i in contours:
            approximation = cv2.approxPolyDP(i, 0.04 * peri, True)
            if len(approximation) == 4:
                squares.append(approximation)
+               area = cv2.contourArea(approximation)
+               area_total += area
+               count +=1
+
+
+               x, y, w, h = cv2.boundingRect(approximation)
+               print("X: "+str(x)+" Y: "+str(y)+" W: "+str(w)+ " H: "+str(h))
+               cv2.rectangle(var1, (x, y), (x + w, y + h), (0, 255, 0), 2)
+               new_image = var1[x+7:x+h-7, y+7:y+w-7]
+
+
+               #cv2.waitKey(0)
+
+               #var1 = cv2.GaussianBlur(new_image, (5, 5), 0)
+               var2 = cv2.adaptiveThreshold(new_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
+                                            cv2.THRESH_BINARY, 11, 2)
+
+
+               cv2.imshow("Imagen perspectiva", var2)
+               cv2.waitKey(0)
+
+               cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var3.png', var2)
+
+
+
+
+
+
+
+
+
                #area = cv2.contourArea(approximation)
                #print("AREA: "+str(area))
                #print(cv2.moments(approximation))
                #x, y, w, h = cv2.boundingRect(approximation)
                #print("DATA: "+str(x)+str(y)+str(w)+str(h))
+
+result = (area_total/count)
+area_prom = math.sqrt(result)
+print (str(area_prom))
 
 for i in range(len(squares)):
     e = squares[i]
@@ -165,21 +201,19 @@ cv2.imshow("Imagen perspectiva",var2)
 cv2.waitKey(0)
 
 
-im_number = warp_gray[0*52:(0+1)*52][:, 3*49:(3+1)*49]
+im_number = warp_gray[0*(area_prom+8.5):(0+1)*(area_prom+8.5)][:, 2*(area_prom+8.5):(2+1)*(area_prom+8.5)]
+
 
 
 var1 = cv2.GaussianBlur(im_number, (5, 5), 0)
-
-
-
 var2 = cv2.adaptiveThreshold(var1,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
   cv2.THRESH_BINARY,11,2)
+
 
 
 cv2.imshow('Output', var2)
 cv2.waitKey(0)
 cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var2.png',var2)
-
 
 
 
