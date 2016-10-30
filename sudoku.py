@@ -6,7 +6,7 @@ from PIL import Image
 
 
 # Cargar Imagen
-image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/sudoku2.png')
+image_sudoku_original = cv2.imread('/home/lcorniglione/Documents/sudoku_recognition/fotos/sudoku.jpg')
 # Mostrar Imagen
 
 cv2.imshow("Imagen original",image_sudoku_original)
@@ -131,6 +131,23 @@ cv2.waitKey(0)
 contours, hierarchy = cv2.findContours(var2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 
+def nroCuadrado(x, y):
+    width = 449
+    height = 449
+
+    widthxCuadrado = width / 9
+    heightxCuadrado = height / 9
+
+    for i in range(0, 9):
+        for j in range(0, 9):
+            proximoenAncho = (i + 1) * widthxCuadrado
+            actualenAncho = i * widthxCuadrado
+            proximoenAlto = (j + 1) * heightxCuadrado
+            actualenAlto = j * heightxCuadrado
+            if (x >=  actualenAncho and x <=  proximoenAncho and y >=  actualenAlto and y <= proximoenAlto):
+                return i, j
+
+
 squares = []
 size_rectangle_max = 0;
 biggest = None
@@ -149,12 +166,13 @@ for i in contours:
                area_total += area
                count +=1
 
-
                x, y, w, h = cv2.boundingRect(approximation)
                print("X: "+str(x)+" Y: "+str(y)+" W: "+str(w)+ " H: "+str(h))
                cv2.rectangle(var1, (x, y), (x + w, y + h), (0, 255, 0), 2)
                new_image = var1[x+7:x+h-7, y+7:y+w-7]
 
+               f, g = nroCuadrado(x, y)
+               print (f, g)
 
                #cv2.waitKey(0)
 
@@ -165,8 +183,9 @@ for i in contours:
 
                cv2.imshow("Imagen perspectiva", var2)
                cv2.waitKey(0)
+               name = '/home/lcorniglione/Documents/sudoku_recognition/fotos/var%s%d.jpg' %(f,g)
 
-               cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var3.png', var2)
+               cv2.imwrite(name, var2)
 
 
 
@@ -214,6 +233,5 @@ var2 = cv2.adaptiveThreshold(var1,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
 cv2.imshow('Output', var2)
 cv2.waitKey(0)
 cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var2.png',var2)
-
 
 

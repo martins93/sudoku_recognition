@@ -119,6 +119,7 @@ def imageprepare(argv):
         img = im.resize((20, nheight), Image.ANTIALIAS).filter(ImageFilter.SHARPEN)
         wtop = int(round(((28 - nheight) / 2), 0))  # caculate horizontal pozition
         newImage.paste(img, (4, wtop))  # paste resized image on white canvas
+        newImage.show()
 
     else:
         # Height is bigger. Heigth becomes 20 pixels.
@@ -131,15 +132,15 @@ def imageprepare(argv):
         newImage.paste(img, (wleft, 4))  # paste resized image on white canvas
         newImage.show()
 
-        black=0
-        white=0
-        for pixel in newImage.getdata():
-            if pixel==0:
-                black+=1
-            if pixel==255:
-                white+=1
-        print("BLACK: "+str(black))
-        print("WHITE: " + str(white))
+    black=0
+    white=0
+    for pixel in newImage.getdata():
+        if pixel==0:
+            black+=1
+        if pixel==255:
+            white+=1
+    print("BLACK: "+str(black))
+    print("WHITE: " + str(white))
 
 
     # newImage.save("sample.png")
@@ -166,5 +167,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    image_path = '/home/martin/sudoku/sudoku_recognition/var3.png'
+    image_path = '/home/lcorniglione/Documents/sudoku_recognition/fotos/var68.jpg'
     main(image_path)
