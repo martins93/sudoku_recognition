@@ -28,7 +28,6 @@ import tensorflow as tf
 from PIL import Image, ImageFilter
 import cv2
 
-
 def predictint(imvalue):
     """
     This function returns the predicted integer.
@@ -84,6 +83,21 @@ def predictint(imvalue):
     init_op = tf.initialize_all_variables()
     saver = tf.train.Saver()
 
+    try:
+        sess = tf.Session()
+        sess.run(init_op)
+        saver.restore(sess, "model2.ckpt")
+        prediction = tf.argmax(y_conv, 1)
+    except Exception as ex:
+        print ("entre")
+        #saver.restore(sess, "model2.ckpt")
+        prediction = tf.argmax(y_conv, 1)
+    # print ("Model restored.")
+
+
+    return prediction.eval(feed_dict={x: [imvalue], keep_prob: 1.0}, session=sess)
+
+
     """
     Load the model2.ckpt file
     file is stored in the same directory as this python script is started
@@ -91,13 +105,11 @@ def predictint(imvalue):
     Based on the documentatoin at
     https://www.tensorflow.org/versions/master/how_tos/variables/index.html
     """
-    with tf.Session() as sess:
-        sess.run(init_op)
-        saver.restore(sess, "model2.ckpt")
-        # print ("Model restored.")
 
-        prediction = tf.argmax(y_conv, 1)
-        return prediction.eval(feed_dict={x: [imvalue], keep_prob: 1.0}, session=sess)
+
+
+    #with tf.Session() as sess:
+
 
 
 def imageprepare(argv):
@@ -105,7 +117,8 @@ def imageprepare(argv):
     This function returns the pixel values.
     The imput is a png file location.
     """
-    im = Image.open(argv).convert('L')
+    #im = Image.open(argv).convert('L')
+    im=Image.fromarray(argv).convert('L')
     width = float(im.size[0])
     height = float(im.size[1])
     newImage = Image.new('L', (28, 28), (255))  # creates white canvas of 28x28 pixels
@@ -119,6 +132,7 @@ def imageprepare(argv):
         img = im.resize((20, nheight), Image.ANTIALIAS).filter(ImageFilter.SHARPEN)
         wtop = int(round(((28 - nheight) / 2), 0))  # caculate horizontal pozition
         newImage.paste(img, (4, wtop))  # paste resized image on white canvas
+        #newImage.show()
 
     else:
         # Height is bigger. Heigth becomes 20 pixels.
@@ -129,17 +143,9 @@ def imageprepare(argv):
         img = im.resize((nwidth, 20), Image.ANTIALIAS).filter(ImageFilter.SHARPEN)
         wleft = int(round(((28 - nwidth) / 2), 0))  # caculate vertical pozition
         newImage.paste(img, (wleft, 4))  # paste resized image on white canvas
-        newImage.show()
+        #newImage.show()
 
-        black=0
-        white=0
-        for pixel in newImage.getdata():
-            if pixel==0:
-                black+=1
-            if pixel==255:
-                white+=1
-        print("BLACK: "+str(black))
-        print("WHITE: " + str(white))
+
 
 
     # newImage.save("sample.png")
@@ -162,9 +168,4 @@ def main(argv):
     predint = predictint(imvalue)
 
 
-    print (predint[0])  # first value in list
-
-
-if __name__ == "__main__":
-    image_path = '/home/martin/sudoku/sudoku_recognition/var3.png'
-    main(image_path)
+    return predint[0] # first value in list

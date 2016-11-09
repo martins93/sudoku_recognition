@@ -1,13 +1,10 @@
 import numpy as np
 import cv2
-from matplotlib import pyplot as plt
 import math
-from PIL import Image
+from sudoku_recognition import predict
 
 
-# Cargar Imagen
-image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/sudoku2.png')
-# Mostrar Imagen
+image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/sudoku-hard.jpg')
 
 cv2.imshow("Imagen original",image_sudoku_original)
 cv2.waitKey(0)
@@ -15,52 +12,21 @@ cv2.waitKey(0)
 
 img = cv2.GaussianBlur(image_sudoku_original,(5,5),0)
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-mask = np.zeros((gray.shape),np.uint8)
-kernel1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(11,11))
 
-#Performs advanced morphological transformations.
-#http://docs.opencv.org/2.4/modules/imgproc/doc/filtering.html?highlight=cv2.morphologyex#cv2.morphologyEx
-close = cv2.morphologyEx(gray,cv2.MORPH_CLOSE,kernel1)
-div = np.float32(gray)/(close)
-res = np.uint8(cv2.normalize(div,div,0,255,cv2.NORM_MINMAX))
-res2 = cv2.cvtColor(res,cv2.COLOR_GRAY2BGR)
+cv2.imshow("Imagen en escala de grises",gray)
+cv2.waitKey(0)
 
-cv2.imshow("Imagen morfologia",res2)
+thresh1 = cv2.adaptiveThreshold(gray,255,0,1,19,2)
+
+
+cv2.imshow("Imagen binarizada",thresh1)
 cv2.waitKey(0)
 
 
-# Conversion de imagen de su espacio de colores a escala de grises
-#image_sudoku_gray = cv2.cvtColor(image_sudoku_original, cv2.COLOR_BGR2GRAY)
-# Binarizar imagen por umbral (adaptive threshold)
-#gray = cv2.GaussianBlur(img, (5, 5), 0)
-#thresh = cv2.adaptiveThreshold(gray, 255, 1, 1, 11, 2)[1]
 
-thresh = cv2.adaptiveThreshold(res,255,0,1,19,2)
+contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-#cv2.imshow("Imagen original",image_sudoku_original)
-#cv2.waitKey(0)
-
-# show image
-cv2.imshow("Imagen binarizada",thresh)
-cv2.waitKey(0)
-
-# El metodo findContours encuentra los contornos en una imagen binarizada
-# El vector hierarchy indica el contorno hijo o padre de contours0, en caso de no tener
-# hijo o padre hierarchy es negativo
-# CV_RETR_TREES retrieves all of the contours and reconstructs a full hierarchy of nested contours.
-# CV_CHAIN_APPROX_SIMPLE compresses horizontal, vertical, and diagonal segments and leaves only their end points.
-# For example, an up-right rectangular contour is encoded with 4 points.
-
-contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-# Size of the image (height, width)
-
-# copy the original image to show the posible candidate
-image_sudoku_candidates = image_sudoku_original.copy()
-
-# We are taking a practical assumption :
-# The biggest square in the image should be Sudoku Square.
-# In short, image should be taken close to Sudoku.
+#image_sudoku_candidates = image_sudoku_original.copy()
 
 size_rectangle_max = 0;
 biggest = None
@@ -74,17 +40,14 @@ for i in contours:
             biggest = approximation
             max_area = area
 
-# show the best candidate
 for i in range(len(approximation)):
-    cv2.line(thresh,
+    cv2.line(image_sudoku_original,
              (biggest[(i % 4)][0][0], biggest[(i % 4)][0][1]),
              (biggest[((i + 1) % 4)][0][0], biggest[((i + 1) % 4)][0][1]),
              (255, 0, 0), 2)
-# show image
-cv2.imshow("Imagen contorno",thresh)
-cv2.waitKey(0)
 
-# Cambio de perspectiva de la imagen
+cv2.imshow("Contorno principal",image_sudoku_original)
+cv2.waitKey(0)
 
 def rectify(h):
     h = h.reshape((4, 2))
@@ -108,29 +71,72 @@ retval = cv2.getPerspectiveTransform(approx, h)
 warp_gray = cv2.warpPerspective(gray, retval, (450, 450))
 
 
-#cv2.imshow("Imagen perspectiva",test)
-#cv2.waitKey(0)
+h, w = warp_gray.shape[:2]
+print h
+print w
 
-# Binarizar imagen por umbral (adaptive threshold)
-# var1 = cv2.cvtColor(test, cv2.COLOR_BGR2GRAY)
-# var2 = cv2.GaussianBlur(gray, (5, 5), 0
-
-
-#var2 = cv2.adaptiveThreshold(var1, 255, 1, 1, 11, 2)
-
-
-cv2.imshow("Imagen perspectiva",warp_gray)
+cv2.imshow("Imagen con cambio perspectiva",warp_gray)
 cv2.waitKey(0)
 
-var1 = cv2.GaussianBlur(warp_gray, (5, 5), 0)
-var2 = cv2.adaptiveThreshold(var1,255,0,1,19,2)
 
-cv2.imshow("Imagen ultimo",var2)
+var2 = cv2.adaptiveThreshold(warp_gray,255,0,1,19,2)
+#close = cv2.morphologyEx(var2,cv2.MORPH_CLOSE,kernel1)
+
+
+
+gauss = cv2.GaussianBlur(warp_gray, (5, 5), 0)
+thresh = cv2.adaptiveThreshold(gauss,255,0,1,19,2)
+
+
+kernel = np.ones((5, 5), np.uint8)
+erosion = cv2.erode(thresh, kernel, iterations=1)
+dilation = cv2.dilate(thresh, kernel, iterations=1)
+
+
+closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+#opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)
+
+#
+# close = cv2.morphologyEx(thresh,cv2.MORPH_CLOSE,kernel1)
+# div = np.float32(warp_gray)/(close)
+# res = np.uint8(cv2.normalize(div,div,0,255,cv2.NORM_MINMAX))
+# res2 = cv2.cvtColor(res,cv2.COLOR_GRAY2BGR)
+
+
+#img = cv2.GaussianBlur(var2,(5,5),0)
+
+
+cv2.imshow("Imagen con Closing",closing)
 cv2.waitKey(0)
 
-contours, hierarchy = cv2.findContours(var2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+# cv2.imshow("Imagen ultimo",thresh)
+# cv2.waitKey(0)
+
+contours, hierarchy = cv2.findContours(closing, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 
+def nroCuadrado(x, y,w,h):
+
+    width = 449
+    height = 449
+
+    x = x+(w/2)
+    y = y+(h/2)
+
+    widthxCuadrado = width / 9
+    heightxCuadrado = height / 9
+
+    for i in range(0, 9):
+        for j in range(0, 9):
+            proximoenAncho = (i + 1) * widthxCuadrado
+            actualenAncho = i * widthxCuadrado
+            proximoenAlto = (j + 1) * heightxCuadrado
+            actualenAlto = j * heightxCuadrado
+            if (x >=  actualenAncho and x <= proximoenAncho and y >=  actualenAlto and y <= proximoenAlto):
+                return i, j
+
+sudoku_matrix = np.zeros((9,9))
 squares = []
 size_rectangle_max = 0;
 biggest = None
@@ -140,64 +146,75 @@ area_total = 0
 for i in contours:
    area = cv2.contourArea(i)
    if area > 100:
-       peri = cv2.arcLength(i, True)
-       if peri<200 and peri>150:
            approximation = cv2.approxPolyDP(i, 0.04 * peri, True)
            if len(approximation) == 4:
-               squares.append(approximation)
-               area = cv2.contourArea(approximation)
-               area_total += area
-               count +=1
+                   area = cv2.contourArea(approximation)
+                   if area > 1000 and area <=3000:
+                       squares.append(approximation)
+                       area = cv2.contourArea(approximation)
+                       area_total += area
+                       count +=1
+
+                       x, y, w, h = cv2.boundingRect(approximation)
+                       #print("X: "+str(x)+" Y: "+str(y)+" W: "+str(w)+ " H: "+str(h))
+                       cv2.rectangle(gauss, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                       new_image = gauss[x+7:x+h-7, y+7:y+w-7]
+
+                       f, g = nroCuadrado(x, y,w,h)
+                       print (f, g)
+                       #
+                       var2 = cv2.adaptiveThreshold(new_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
+                                                     cv2.THRESH_BINARY, 11, 2)
+
+                       non_black = cv2.countNonZero(var2)
+                       total = var2.size
+
+                       percent = (float(non_black)/float(total))*100
+
+                       if percent > 90.0:
+                           number = -1
+                       else:
+                           number = predict.main(var2)
+                           #var = 1
 
 
-               x, y, w, h = cv2.boundingRect(approximation)
-               print("X: "+str(x)+" Y: "+str(y)+" W: "+str(w)+ " H: "+str(h))
-               cv2.rectangle(var1, (x, y), (x + w, y + h), (0, 255, 0), 2)
-               new_image = var1[x+7:x+h-7, y+7:y+w-7]
+
+                       print ("EL NUMERO ES: " + str(number))
+                       sudoku_matrix[f][g] = number
+                       print(sudoku_matrix)
 
 
-               #cv2.waitKey(0)
+                       #print(number)
 
-               #var1 = cv2.GaussianBlur(new_image, (5, 5), 0)
-               var2 = cv2.adaptiveThreshold(new_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
-                                            cv2.THRESH_BINARY, 11, 2)
+                       #cv2.imshow("Imagen perspectiva", var2)
+                       #cv2.waitKey(0)
+                       #name = '/home/lcorniglione/Documents/sudoku_recognition/fotos/var%s%d.jpg' %(f,g)
 
-
-               cv2.imshow("Imagen perspectiva", var2)
-               cv2.waitKey(0)
-
-               cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var3.png', var2)
+                       #cv2.imwrite(name, var2)
 
 
 
-
-
-
-
-
-
-               #area = cv2.contourArea(approximation)
-               #print("AREA: "+str(area))
-               #print(cv2.moments(approximation))
-               #x, y, w, h = cv2.boundingRect(approximation)
-               #print("DATA: "+str(x)+str(y)+str(w)+str(h))
 
 result = (area_total/count)
 area_prom = math.sqrt(result)
-print (str(area_prom))
+print (sudoku_matrix)
+
+
+print ("CANTIDAD RECONOCIDA:")
+print (len(squares))
 
 for i in range(len(squares)):
     e = squares[i]
     for j,obj in enumerate(e):
         if j == 3:
-            cv2.line(var2,(e[j][0][0], e[j][0][1]),(e[0][0][0], e[0][0][1]),(255, 0, 1), 2)
+            cv2.line(warp_gray,(e[j][0][0], e[j][0][1]),(e[0][0][0], e[0][0][1]),(255, 0, 1), 2)
             break
         else:
-            cv2.line(var2, (e[j][0][0], e[j][0][1]), (e[j + 1][0][0], e[j + 1][0][1]), (255, 0, 1), 2)
+            cv2.line(warp_gray, (e[j][0][0], e[j][0][1]), (e[j + 1][0][0], e[j + 1][0][1]), (255, 0, 1), 2)
 
 
 h, w = warp_gray.shape[:2]
-cv2.imshow("Imagen perspectiva",var2)
+cv2.imshow("Imagen cuadrados",warp_gray)
 cv2.waitKey(0)
 
 
@@ -214,6 +231,5 @@ var2 = cv2.adaptiveThreshold(var1,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
 cv2.imshow('Output', var2)
 cv2.waitKey(0)
 cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var2.png',var2)
-
 
 
