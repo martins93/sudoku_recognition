@@ -1,10 +1,14 @@
 import numpy as np
 import cv2
 import math
-from sudoku_recognition import predict
+import subprocess
+import shutil
+import os
 
 
-image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/sudoku-hard.jpg')
+if not os.path.exists('/home/martin/fotos'):
+    os.makedirs('/home/martin/fotos')
+image_sudoku_original = cv2.imread('/home/martin/sudoku/sudoku_recognition/testing3.jpeg')
 
 cv2.imshow("Imagen original",image_sudoku_original)
 cv2.waitKey(0)
@@ -72,8 +76,6 @@ warp_gray = cv2.warpPerspective(gray, retval, (450, 450))
 
 
 h, w = warp_gray.shape[:2]
-print h
-print w
 
 cv2.imshow("Imagen con cambio perspectiva",warp_gray)
 cv2.waitKey(0)
@@ -157,31 +159,40 @@ for i in contours:
 
                        x, y, w, h = cv2.boundingRect(approximation)
                        #print("X: "+str(x)+" Y: "+str(y)+" W: "+str(w)+ " H: "+str(h))
-                       cv2.rectangle(gauss, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                       cv2.rectangle(gauss, (y, x), (y + w, x + h), (0, 255, 0), 2)
+
+
                        new_image = gauss[x+7:x+h-7, y+7:y+w-7]
 
                        f, g = nroCuadrado(x, y,w,h)
-                       print (f, g)
-                       #
+
+
                        var2 = cv2.adaptiveThreshold(new_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
                                                      cv2.THRESH_BINARY, 11, 2)
+
+                       name = '/home/martin/fotos/var%s%d.jpg' % (f, g)
+
+                       cv2.imwrite(name, var2)
 
                        non_black = cv2.countNonZero(var2)
                        total = var2.size
 
                        percent = (float(non_black)/float(total))*100
 
+
+
                        if percent > 90.0:
                            number = -1
                        else:
-                           number = predict.main(var2)
+                           #number = predict.main(var2)
+                           command = name
+                           number = subprocess.check_output(['python', 'predict.py', command])
                            #var = 1
 
 
 
-                       print ("EL NUMERO ES: " + str(number))
                        sudoku_matrix[f][g] = number
-                       print(sudoku_matrix)
+
 
 
                        #print(number)
@@ -190,46 +201,55 @@ for i in contours:
                        #cv2.waitKey(0)
                        #name = '/home/lcorniglione/Documents/sudoku_recognition/fotos/var%s%d.jpg' %(f,g)
 
-                       #cv2.imwrite(name, var2)
 
 
 
 
 result = (area_total/count)
 area_prom = math.sqrt(result)
-print (sudoku_matrix)
 
 
 print ("CANTIDAD RECONOCIDA:")
 print (len(squares))
 
-for i in range(len(squares)):
-    e = squares[i]
-    for j,obj in enumerate(e):
-        if j == 3:
-            cv2.line(warp_gray,(e[j][0][0], e[j][0][1]),(e[0][0][0], e[0][0][1]),(255, 0, 1), 2)
-            break
-        else:
-            cv2.line(warp_gray, (e[j][0][0], e[j][0][1]), (e[j + 1][0][0], e[j + 1][0][1]), (255, 0, 1), 2)
+
+cant_squares = len(squares)
+for i in range(0,9):
+        for j in range(0,9):
+            num = sudoku_matrix[i][j]
+            if num==(-1.0):
+                sudoku_matrix[i][j] = 0
+            if num==(0.0) and cant_squares<81:
+
+                im_number = gauss[i * (area_prom + 8):(i+1) * (area_prom + 8)][:,
+                            j * (area_prom + 8):(j+1) * (area_prom + 8)]
+
+                var2 = cv2.adaptiveThreshold(im_number, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
+                                             cv2.THRESH_BINARY, 11, 2)
+
+                non_black = cv2.countNonZero(var2)
+                total = var2.size
+
+                percent = (float(non_black) / float(total)) * 100
+
+                name = '/home/martin/fotos/var%s%d.jpg' % (i, j)
+                cv2.imwrite(name, var2)
+
+                if percent > 85.0:
+                    number = -1
+                else:
+                    command = name
+                    number = subprocess.check_output(['python', 'predict.py', command])
+
+                sudoku_matrix[i][j] = number
 
 
-h, w = warp_gray.shape[:2]
-cv2.imshow("Imagen cuadrados",warp_gray)
+print ("FINALIZADO")
+print (sudoku_matrix)
+
+cv2.imshow("Imagen cuadrados", gauss)
 cv2.waitKey(0)
 
-
-im_number = warp_gray[0*(area_prom+8.5):(0+1)*(area_prom+8.5)][:, 2*(area_prom+8.5):(2+1)*(area_prom+8.5)]
-
-
-
-var1 = cv2.GaussianBlur(im_number, (5, 5), 0)
-var2 = cv2.adaptiveThreshold(var1,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-  cv2.THRESH_BINARY,11,2)
-
-
-
-cv2.imshow('Output', var2)
-cv2.waitKey(0)
-cv2.imwrite('/home/martin/sudoku/sudoku_recognition/var2.png',var2)
+shutil.rmtree('/home/martin/fotos')
 
 

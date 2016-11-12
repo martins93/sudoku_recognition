@@ -83,16 +83,12 @@ def predictint(imvalue):
     init_op = tf.initialize_all_variables()
     saver = tf.train.Saver()
 
-    try:
+
+    with tf.Session() as sess:
         sess = tf.Session()
         sess.run(init_op)
         saver.restore(sess, "model2.ckpt")
         prediction = tf.argmax(y_conv, 1)
-    except Exception as ex:
-        print ("entre")
-        #saver.restore(sess, "model2.ckpt")
-        prediction = tf.argmax(y_conv, 1)
-    # print ("Model restored.")
 
 
     return prediction.eval(feed_dict={x: [imvalue], keep_prob: 1.0}, session=sess)
@@ -117,8 +113,8 @@ def imageprepare(argv):
     This function returns the pixel values.
     The imput is a png file location.
     """
-    #im = Image.open(argv).convert('L')
-    im=Image.fromarray(argv).convert('L')
+    im = Image.open(argv).convert('L')
+    #im=Image.fromarray(argv).convert('L')
     width = float(im.size[0])
     height = float(im.size[1])
     newImage = Image.new('L', (28, 28), (255))  # creates white canvas of 28x28 pixels
@@ -168,4 +164,8 @@ def main(argv):
     predint = predictint(imvalue)
 
 
-    return predint[0] # first value in list
+    print predint[0] # first value in list
+
+if __name__ == "__main__":
+    img_path = sys.argv[1]
+    main(img_path)
